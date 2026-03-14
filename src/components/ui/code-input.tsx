@@ -123,6 +123,7 @@ function handleTab(textarea: HTMLTextAreaElement, shouldOutdent: boolean) {
 }
 
 export type CodeInputProps = Omit<ComponentProps<typeof Card>, "children"> & {
+  characterLimit?: number;
   code: string;
   headerAside?: ReactNode;
   language: SupportedLanguageId;
@@ -131,6 +132,7 @@ export type CodeInputProps = Omit<ComponentProps<typeof Card>, "children"> & {
 };
 
 export function CodeInput({
+  characterLimit,
   className,
   code,
   headerAside,
@@ -159,6 +161,10 @@ export function CodeInput({
     resolvedHighlight?.code === code && resolvedHighlight.language === language
       ? resolvedHighlight.html
       : plainTextHtml;
+  const currentCharacterCount = code.length;
+  const isOverCharacterLimit =
+    typeof characterLimit === "number" &&
+    currentCharacterCount > characterLimit;
 
   useEffect(() => {
     void preloadHighlightEngine();
@@ -239,7 +245,7 @@ export function CodeInput({
         {headerAside ? <div className="min-w-0">{headerAside}</div> : null}
       </div>
 
-      <div className="flex min-h-[360px] bg-bg-input text-left font-mono text-sm text-text-secondary">
+      <div className="flex min-h-[360px] max-h-[40rem] overflow-hidden bg-bg-input text-left font-mono text-sm text-text-secondary">
         <div className="w-14 shrink-0 overflow-hidden border-r border-border-primary px-3 py-4 text-text-tertiary">
           <div
             className="flex flex-col items-end text-sm leading-6"
@@ -266,7 +272,7 @@ export function CodeInput({
             autoCapitalize="off"
             autoComplete="off"
             autoCorrect="off"
-            className="absolute inset-0 h-full w-full resize-none overflow-auto border-0 bg-transparent px-4 py-4 font-mono text-sm leading-6 text-transparent caret-text-primary outline-none placeholder:text-text-tertiary"
+            className="code-input-scroll absolute inset-0 h-full w-full resize-none overflow-auto border-0 bg-transparent px-4 py-4 font-mono text-sm leading-6 text-transparent caret-text-primary outline-none placeholder:text-text-tertiary"
             onChange={(event) => onCodeChange(event.target.value)}
             onKeyDown={(event) => {
               const textarea = event.currentTarget;
@@ -293,6 +299,19 @@ export function CodeInput({
           />
         </div>
       </div>
+
+      {typeof characterLimit === "number" ? (
+        <div className="flex items-center justify-end border-t border-border-primary px-4 py-2">
+          <span
+            className={[
+              "font-mono text-xs uppercase tracking-widest",
+              isOverCharacterLimit ? "text-accent-red" : "text-text-tertiary",
+            ].join(" ")}
+          >
+            {`${currentCharacterCount.toLocaleString()} / ${characterLimit.toLocaleString()} chars`}
+          </span>
+        </div>
+      ) : null}
     </Card>
   );
 }

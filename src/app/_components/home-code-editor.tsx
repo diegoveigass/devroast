@@ -13,11 +13,16 @@ import {
 import { HomeCodeEditorLanguageSelect } from "./home-code-editor-language-select";
 
 type HomeCodeEditorProps = {
+  characterLimit: number;
   code: string;
   onCodeChange: (value: string) => void;
 };
 
-export function HomeCodeEditor({ code, onCodeChange }: HomeCodeEditorProps) {
+export function HomeCodeEditor({
+  characterLimit,
+  code,
+  onCodeChange,
+}: HomeCodeEditorProps) {
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguageId | null>(null);
   const detectedLanguage = useMemo(
@@ -51,6 +56,7 @@ export function HomeCodeEditor({ code, onCodeChange }: HomeCodeEditorProps) {
   return (
     <div className="flex w-full flex-col gap-3">
       <CodeInput
+        characterLimit={characterLimit}
         code={code}
         headerAside={
           <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">

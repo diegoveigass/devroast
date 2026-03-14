@@ -3,12 +3,14 @@ import { Button, Toggle } from "@/components/ui";
 import { HomeCodeEditor } from "./home-code-editor";
 
 type HomeHeroProps = {
+  characterLimit: number;
   code: string;
   isSubmitDisabled: boolean;
   onCodeChange: (value: string) => void;
 };
 
 export function HomeHero({
+  characterLimit,
   code,
   isSubmitDisabled,
   onCodeChange,
@@ -28,7 +30,11 @@ export function HomeHero({
         </p>
       </div>
 
-      <HomeCodeEditor code={code} onCodeChange={onCodeChange} />
+      <HomeCodeEditor
+        characterLimit={characterLimit}
+        code={code}
+        onCodeChange={onCodeChange}
+      />
 
       <div className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
