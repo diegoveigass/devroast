@@ -14,6 +14,8 @@ export type {
   CodeBlockWindowDotsProps,
 } from "./code-block";
 export { CodeBlock } from "./code-block";
+export type { CodeInputProps } from "./code-input";
+export { CodeInput } from "./code-input";
 export type { DiffLineProps } from "./diff-line";
 export { DiffLine, diffLineVariants } from "./diff-line";
 export type { ScoreRingProps } from "./score-ring";

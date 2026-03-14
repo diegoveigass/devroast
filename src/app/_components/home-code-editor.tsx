@@ -1,44 +1,78 @@
-import { Card, Textarea } from "@/components/ui";
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { Badge, CodeInput } from "@/components/ui";
+import { detectLanguage } from "@/lib/code-highlight/detect-language";
+import {
+  DEFAULT_LANGUAGE_ID,
+  getLanguageLabel,
+  type SupportedLanguageId,
+} from "@/lib/code-highlight/languages";
+
+import { HomeCodeEditorLanguageSelect } from "./home-code-editor-language-select";
 
 type HomeCodeEditorProps = {
   code: string;
-  lineNumbers: string[];
   onCodeChange: (value: string) => void;
 };
 
-export function HomeCodeEditor({
-  code,
-  lineNumbers,
-  onCodeChange,
-}: HomeCodeEditorProps) {
+export function HomeCodeEditor({ code, onCodeChange }: HomeCodeEditorProps) {
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<SupportedLanguageId | null>(null);
+  const detectedLanguage = useMemo(
+    () =>
+      code.trim().length === 0 ? DEFAULT_LANGUAGE_ID : detectLanguage(code),
+    [code],
+  );
+
+  const activeLanguage = selectedLanguage ?? detectedLanguage;
+  const status = useMemo(() => {
+    if (selectedLanguage) {
+      return {
+        label: `manual: ${getLanguageLabel(selectedLanguage)}`,
+        variant: "warning" as const,
+      };
+    }
+
+    if (activeLanguage === "plaintext") {
+      return {
+        label: "auto: plain text",
+        variant: "critical" as const,
+      };
+    }
+
+    return {
+      label: `auto: ${getLanguageLabel(activeLanguage)}`,
+      variant: "good" as const,
+    };
+  }, [activeLanguage, selectedLanguage]);
+
   return (
-    <Card className="w-full gap-0 overflow-hidden" size="sm" surface="surface">
-      <div className="flex h-10 items-center gap-2 border-b border-border-primary px-4">
-        <span className="size-2 rounded-full bg-accent-red" />
-        <span className="size-2 rounded-full bg-accent-amber" />
-        <span className="size-2 rounded-full bg-accent-green" />
-      </div>
+    <div className="flex w-full flex-col gap-3">
+      <CodeInput
+        code={code}
+        headerAside={
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            <Badge showDot={false} variant={status.variant}>
+              {status.label}
+            </Badge>
+            <HomeCodeEditorLanguageSelect
+              onChange={setSelectedLanguage}
+              value={selectedLanguage}
+            />
+          </div>
+        }
+        language={activeLanguage}
+        onCodeChange={onCodeChange}
+        placeholder={
+          "function calculateTotal(items) {\n  let total = 0;\n\n  for (const item of items) {\n    total += item.price;\n  }\n\n  return total;\n}"
+        }
+      />
 
-      <div className="flex min-h-[360px] bg-bg-input text-left font-mono text-sm text-text-secondary">
-        <div className="flex w-12 shrink-0 flex-col items-end border-r border-border-primary px-3 py-4 font-mono text-sm leading-6 text-text-tertiary">
-          {lineNumbers.map((lineNumber) => (
-            <span className="block h-6" key={lineNumber}>
-              {lineNumber}
-            </span>
-          ))}
-        </div>
-
-        <Textarea
-          aria-label="Code input"
-          className="min-h-[360px] border-0 p-4"
-          onChange={(event) => onCodeChange(event.target.value)}
-          placeholder={
-            "function calculateTotal(items) {\n  let total = 0;\n\n  for (const item of items) {\n    total += item.price;\n  }\n\n  return total;\n}"
-          }
-          spellCheck={false}
-          value={code}
-        />
-      </div>
-    </Card>
+      <p className="font-mono text-xs uppercase tracking-widest text-text-tertiary">
+        {"// auto-detect ativo, mas voce pode travar a linguagem manualmente"}
+      </p>
+    </div>
   );
 }

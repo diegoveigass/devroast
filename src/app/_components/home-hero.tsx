@@ -5,14 +5,12 @@ import { HomeCodeEditor } from "./home-code-editor";
 type HomeHeroProps = {
   code: string;
   isSubmitDisabled: boolean;
-  lineNumbers: string[];
   onCodeChange: (value: string) => void;
 };
 
 export function HomeHero({
   code,
   isSubmitDisabled,
-  lineNumbers,
   onCodeChange,
 }: HomeHeroProps) {
   return (
@@ -30,11 +28,7 @@ export function HomeHero({
         </p>
       </div>
 
-      <HomeCodeEditor
-        code={code}
-        lineNumbers={lineNumbers}
-        onCodeChange={onCodeChange}
-      />
+      <HomeCodeEditor code={code} onCodeChange={onCodeChange} />
 
       <div className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
