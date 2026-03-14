@@ -19,7 +19,10 @@ export function AppNavbar() {
           >
             components
           </Link>
-          <Link className="transition-colors hover:text-text-primary" href="#">
+          <Link
+            className="transition-colors hover:text-text-primary"
+            href="/leaderboard"
+          >
             leaderboard
           </Link>
         </nav>

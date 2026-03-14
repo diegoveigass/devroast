@@ -304,7 +304,7 @@ export function CodeInput({
         <div className="flex items-center justify-end border-t border-border-primary px-4 py-2">
           <span
             className={[
-              "font-mono text-xs uppercase tracking-widest",
+              "font-mono text-xs uppercase tracking-widest tabular-nums",
               isOverCharacterLimit ? "text-accent-red" : "text-text-tertiary",
             ].join(" ")}
           >

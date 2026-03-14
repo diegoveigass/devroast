@@ -1,4 +1,6 @@
-import { Button, Card, Section, TableRow } from "@/components/ui";
+import Link from "next/link";
+
+import { buttonVariants, Card, Section, TableRow } from "@/components/ui";
 
 const leaderboardRows = [
   {
@@ -35,9 +37,12 @@ export function HomeLeaderboardPreview() {
           </Section.Description>
         </Section.Header>
 
-        <Button size="sm" variant="link">
+        <Link
+          className={buttonVariants({ size: "sm", variant: "link" })}
+          href="/leaderboard"
+        >
           {"$ view_all >>"}
-        </Button>
+        </Link>
       </div>
 
       <Card className="gap-0 overflow-hidden" size="sm" surface="page">
@@ -67,9 +72,12 @@ export function HomeLeaderboardPreview() {
         <p className="text-xs leading-5 text-text-tertiary">
           showing top 3 of 2,847
         </p>
-        <Button size="sm" variant="link">
+        <Link
+          className={buttonVariants({ size: "sm", variant: "link" })}
+          href="/leaderboard"
+        >
           {"$ view_full_leaderboard >>"}
-        </Button>
+        </Link>
       </div>
     </section>
   );
