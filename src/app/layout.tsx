@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 
+import { TRPCProvider } from "@/trpc/client";
+
 import { AppNavbar } from "./_components/app-navbar";
 import "./globals.css";
 
@@ -25,10 +27,12 @@ export default function RootLayout({
       <body
         className={`${jetBrainsMono.variable} bg-bg-page font-sans text-text-primary antialiased`}
       >
-        <div className="min-h-screen bg-bg-page">
-          <AppNavbar />
-          {children}
-        </div>
+        <TRPCProvider>
+          <div className="min-h-screen bg-bg-page">
+            <AppNavbar />
+            {children}
+          </div>
+        </TRPCProvider>
       </body>
     </html>
   );

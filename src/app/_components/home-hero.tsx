@@ -1,9 +1,14 @@
+"use client";
+
+import type { ReactNode } from "react";
+
 import { Button, Toggle } from "@/components/ui";
 
 import { HomeCodeEditor } from "./home-code-editor";
 
 type HomeHeroProps = {
   characterLimit: number;
+  children: ReactNode;
   code: string;
   isSubmitDisabled: boolean;
   onCodeChange: (value: string) => void;
@@ -11,6 +16,7 @@ type HomeHeroProps = {
 
 export function HomeHero({
   characterLimit,
+  children,
   code,
   isSubmitDisabled,
   onCodeChange,
@@ -51,11 +57,7 @@ export function HomeHero({
           <Button disabled={isSubmitDisabled}>{"$ roast_my_code"}</Button>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-text-tertiary lg:gap-6">
-          <span>2,847 codes roasted</span>
-          <span className="font-mono">{"·"}</span>
-          <span>avg score: 4.2/10</span>
-        </div>
+        {children}
       </div>
     </section>
   );
