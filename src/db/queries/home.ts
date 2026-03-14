@@ -13,9 +13,7 @@ export async function getHomeStats() {
     })
     .from(submissions)
     .innerJoin(roastResults, eq(roastResults.submissionId, submissions.id))
-    .where(
-      and(eq(submissions.status, "completed"), eq(submissions.isPublic, true)),
-    );
+    .where(eq(submissions.status, "completed"));
 
   return {
     averageScore: result?.averageScore ?? "0.0",
