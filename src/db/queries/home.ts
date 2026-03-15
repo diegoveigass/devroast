@@ -22,10 +22,13 @@ export async function getHomeStats() {
 }
 
 export async function getHomeLeaderboardPreview(limit = 3) {
+  const safeLimit = Math.min(Math.max(limit, 1), 20);
+
   return db
     .select({
       id: submissions.id,
       language: sql<string>`coalesce(${roastResults.languageLabel}, ${submissions.language}, 'plaintext')`,
+      lineCount: submissions.lineCount,
       originalCode: submissions.originalCode,
       publicId: submissions.publicId,
       rank: sql<number>`row_number() over (order by ${roastResults.score} asc, ${submissions.createdAt} asc)`,
@@ -35,5 +38,5 @@ export async function getHomeLeaderboardPreview(limit = 3) {
     .innerJoin(roastResults, eq(roastResults.submissionId, submissions.id))
     .where(eq(submissions.status, "completed"))
     .orderBy(asc(roastResults.score), asc(submissions.createdAt))
-    .limit(limit);
+    .limit(safeLimit);
 }

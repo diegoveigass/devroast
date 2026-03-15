@@ -1,3 +1,4 @@
+import { twMerge } from "tailwind-merge";
 import { Card, Section } from "@/components/ui";
 
 export function HomeLeaderboardPreviewSkeleton() {
@@ -26,12 +27,10 @@ export function HomeLeaderboardPreviewSkeleton() {
 
         {placeholderRows.map((rowId, index) => (
           <div
-            className={[
+            className={twMerge(
               "grid grid-cols-1 items-center gap-4 border-b border-border-primary px-5 py-4 font-mono md:grid-cols-[40px_60px_minmax(0,1fr)_100px] md:gap-6",
-              index === 2 ? "border-b-0" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+              index === 2 ? "border-b-0" : undefined,
+            )}
             key={rowId}
           >
             <span className="inline-flex h-4 w-6 animate-pulse rounded-full bg-bg-elevated" />

@@ -3,6 +3,7 @@
 import { Collapsible } from "@base-ui/react/collapsible";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { twMerge } from "tailwind-merge";
 
 type HomeLeaderboardPreviewRowProps = {
   codeBlock: ReactNode;
@@ -39,10 +40,10 @@ export function HomeLeaderboardPreviewRow({
       <div className="border-t border-border-primary">
         <div className="relative">
           <div
-            className={[
+            className={twMerge(
               "transition-all duration-300",
               open ? "max-h-96" : "max-h-24 overflow-hidden",
-            ].join(" ")}
+            )}
           >
             {codeBlock}
           </div>
