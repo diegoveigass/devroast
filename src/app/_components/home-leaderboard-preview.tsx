@@ -1,3 +1,4 @@
+import { cacheLife } from "next/cache";
 import Link from "next/link";
 import { cache } from "react";
 
@@ -19,6 +20,9 @@ const getLeaderboardPreview = cache(async () => {
 });
 
 export async function HomeLeaderboardPreview() {
+  "use cache";
+  cacheLife("hours");
+
   const { rows, totalRoasted } = await getLeaderboardPreview();
 
   return (

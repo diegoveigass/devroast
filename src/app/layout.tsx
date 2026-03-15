@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
+import type { ReactNode } from "react";
+import { Suspense } from "react";
 
 import { TRPCProvider } from "@/trpc/client";
 
@@ -20,19 +22,21 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en">
       <body
         className={`${jetBrainsMono.variable} bg-bg-page font-sans text-text-primary antialiased`}
       >
-        <TRPCProvider>
-          <div className="min-h-screen bg-bg-page">
-            <AppNavbar />
-            {children}
-          </div>
-        </TRPCProvider>
+        <Suspense fallback={null}>
+          <TRPCProvider>
+            <div className="min-h-screen bg-bg-page">
+              <AppNavbar />
+              {children}
+            </div>
+          </TRPCProvider>
+        </Suspense>
       </body>
     </html>
   );

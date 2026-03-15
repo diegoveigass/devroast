@@ -1,9 +1,14 @@
 import { asc, count, eq, sql } from "drizzle-orm";
+import { cacheLife, cacheTag } from "next/cache";
 
 import { db } from "@/db";
 import { roastResults, submissions } from "@/db/schema";
 
 export async function getHomeStats() {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("home-stats");
+
   const [result] = await db
     .select({
       totalRoasted: count(submissions.id),
@@ -22,6 +27,10 @@ export async function getHomeStats() {
 }
 
 export async function getHomeLeaderboardPreview(limit = 3) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("home-leaderboard");
+
   const safeLimit = Math.min(Math.max(limit, 1), 20);
 
   return db

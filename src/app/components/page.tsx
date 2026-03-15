@@ -1,3 +1,5 @@
+import { cacheLife } from "next/cache";
+
 import {
   Badge,
   Button,
@@ -29,7 +31,10 @@ const sampleCode = [
 
 const sampleCodeLines = sampleCode.split("\n");
 
-export default function ComponentsPage() {
+export default async function ComponentsPage() {
+  "use cache";
+  cacheLife("days");
+
   return (
     <main className="min-h-screen bg-bg-page text-text-primary">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-6 py-10 lg:px-10">

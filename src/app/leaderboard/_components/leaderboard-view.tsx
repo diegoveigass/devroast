@@ -1,3 +1,4 @@
+import { cacheLife } from "next/cache";
 import { cache } from "react";
 
 import type { BundledLanguage } from "shiki";
@@ -18,6 +19,9 @@ const getLeaderboardData = cache(async () => {
 });
 
 export async function LeaderboardView() {
+  "use cache";
+  cacheLife("hours");
+
   const { averageScore, entries, totalRoasted } = await getLeaderboardData();
 
   return (
