@@ -1,32 +1,26 @@
 import Link from "next/link";
+import { cache } from "react";
 
-import { buttonVariants, Card, Section, TableRow } from "@/components/ui";
+import type { BundledLanguage } from "shiki";
 
-const leaderboardRows = [
-  {
-    codePreview: "function calculateTotal(items) { var total = 0; ...",
-    language: "javascript",
-    rank: "1",
-    score: "1.2",
-    tone: "critical" as const,
-  },
-  {
-    codePreview: "if (a = b) { return false } else { return true }",
-    language: "typescript",
-    rank: "2",
-    score: "1.9",
-    tone: "critical" as const,
-  },
-  {
-    codePreview: "SELECT * FROM users WHERE id = 5 AND deleted_at IS NULL",
-    language: "sql",
-    rank: "3",
-    score: "2.4",
-    tone: "critical" as const,
-  },
-];
+import { buttonVariants, Card, CodeBlock, Section } from "@/components/ui";
+import {
+  LANGUAGE_BY_ID,
+  normalizeLanguageAlias,
+} from "@/lib/code-highlight/languages";
+import { getQueryClient, trpc } from "@/trpc/server";
 
-export function HomeLeaderboardPreview() {
+import { HomeLeaderboardPreviewRow } from "./home-leaderboard-preview-row";
+
+const getLeaderboardPreview = cache(async () => {
+  const queryClient = getQueryClient();
+
+  return queryClient.fetchQuery(trpc.home.getLeaderboardPreview.queryOptions());
+});
+
+export async function HomeLeaderboardPreview() {
+  const { rows, totalRoasted } = await getLeaderboardPreview();
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -53,24 +47,38 @@ export function HomeLeaderboardPreview() {
           <span>lang</span>
         </div>
 
-        {leaderboardRows.map((row, index) => (
-          <TableRow.Root
-            className={
-              index === leaderboardRows.length - 1 ? "border-b-0" : undefined
+        {rows.map((row, index) => (
+          <HomeLeaderboardPreviewRow
+            codeBlock={
+              <CodeBlock.Root
+                className="gap-0 border-0 bg-bg-input p-0"
+                surface="surface"
+              >
+                <CodeBlock.Body>
+                  <CodeBlock.LineNumbers
+                    className="w-10 gap-1.5 bg-bg-surface px-2.5 py-3.5"
+                    lines={row.originalCode.split("\n")}
+                  />
+                  <CodeBlock.Content
+                    className="px-4 py-3.5"
+                    code={row.originalCode}
+                    lang={resolveLeaderboardLanguage(row.language)}
+                  />
+                </CodeBlock.Body>
+              </CodeBlock.Root>
             }
-            key={row.rank}
-          >
-            <TableRow.Rank>{row.rank}</TableRow.Rank>
-            <TableRow.Score tone={row.tone}>{row.score}</TableRow.Score>
-            <TableRow.Code>{row.codePreview}</TableRow.Code>
-            <TableRow.Language>{row.language}</TableRow.Language>
-          </TableRow.Root>
+            isLast={index === rows.length - 1}
+            key={row.publicId}
+            language={row.language}
+            rank={row.rank}
+            score={row.score}
+          />
         ))}
       </Card>
 
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-xs leading-5 text-text-tertiary">
-          showing top 3 of 2,847
+          {`showing top 3 of ${totalRoasted.toLocaleString("en-US")}`}
         </p>
         <Link
           className={buttonVariants({ size: "sm", variant: "link" })}
@@ -81,4 +89,15 @@ export function HomeLeaderboardPreview() {
       </div>
     </section>
   );
+}
+
+function resolveLeaderboardLanguage(language: string): BundledLanguage {
+  const normalizedLanguage = normalizeLanguageAlias(language);
+
+  if (!normalizedLanguage) {
+    return "plaintext" as BundledLanguage;
+  }
+
+  return (LANGUAGE_BY_ID[normalizedLanguage].shiki ??
+    "plaintext") as BundledLanguage;
 }

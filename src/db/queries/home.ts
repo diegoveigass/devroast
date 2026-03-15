@@ -1,4 +1,4 @@
-import { and, asc, count, eq, sql } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { roastResults, submissions } from "@/db/schema";
@@ -26,16 +26,14 @@ export async function getHomeLeaderboardPreview(limit = 3) {
     .select({
       id: submissions.id,
       language: sql<string>`coalesce(${roastResults.languageLabel}, ${submissions.language}, 'plaintext')`,
+      originalCode: submissions.originalCode,
       publicId: submissions.publicId,
       rank: sql<number>`row_number() over (order by ${roastResults.score} asc, ${submissions.createdAt} asc)`,
       score: roastResults.score,
-      codePreview: sql<string>`left(${submissions.originalCode}, 72)`,
     })
     .from(submissions)
     .innerJoin(roastResults, eq(roastResults.submissionId, submissions.id))
-    .where(
-      and(eq(submissions.status, "completed"), eq(submissions.isPublic, true)),
-    )
+    .where(eq(submissions.status, "completed"))
     .orderBy(asc(roastResults.score), asc(submissions.createdAt))
     .limit(limit);
 }
