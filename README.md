@@ -13,7 +13,7 @@ This project was built during the NLW from Rocketseat and is focused on creating
 
 ## Current status
 
-The project is currently running with static data only. The main goal right now is to shape the experience, interface, and reusable component system.
+The app now supports the full roast creation flow: submit code, run the roast analysis, persist the result, and open the result page with real data.
 
 ## Main screens
 
@@ -32,7 +32,39 @@ The project is currently running with static data only. The main goal right now 
 
 ```bash
 npm install
+cp .env.example .env.local
 npm run dev
 ```
 
+Set these env vars in `.env.local` before testing the real roast flow:
+
+- `DATABASE_URL`: local Postgres connection string used by the app and tests
+- `OPENAI_API_KEY`: required to call the OpenAI provider for real roast generation
+- `OPENAI_MODEL`: optional override for the model, defaults to `gpt-4o-mini`
+
+The included `.env.example` already contains a safe local `DATABASE_URL` for the default Docker setup.
+
+If you need the local database:
+
+```bash
+npm run db:up
+npm run db:migrate
+```
+
 Then open `http://localhost:3000`.
+
+## Local roast verification
+
+- automated roast tests use mocked provider calls, so a real `OPENAI_API_KEY` is not required for `npm run test:roasts`
+- manual verification of the full roast flow does require a valid `OPENAI_API_KEY`
+- for a quick manual check, start the app, paste a code sample on the homepage, submit it, and confirm the app redirects to `/result/[submissionId]` with persisted roast data
+
+## Verification commands
+
+```bash
+npm run test:roasts
+node --import tsx --test src/trpc/routers/roasts.test.ts
+npm run format
+npm run lint
+npm run build
+```
