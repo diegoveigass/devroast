@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
+import { getQueryClient, trpc } from "@/trpc/server";
+
+import {
+  createSubmissionResultViewModel,
+  type SubmissionResultViewModel,
+} from "../submission-result-view-model";
 import { SubmissionResultView } from "./_components/submission-result-view";
 
 const UUID_REGEX =
@@ -14,8 +21,19 @@ type ResultPageProps = {
 
 export const metadata: Metadata = {
   title: "Roast Result | DevRoast",
-  description: "Static roast result view keyed by a submission UUID.",
+  description: "Roast result view keyed by a submission UUID.",
 };
+
+const getSubmissionResult = cache(async (submissionId: string) => {
+  const queryClient = getQueryClient();
+  const result = await queryClient.fetchQuery(
+    trpc.roasts.getBySubmissionId.queryOptions({ submissionId }),
+  );
+
+  return createSubmissionResultViewModel(
+    result,
+  ) satisfies SubmissionResultViewModel;
+});
 
 export default async function ResultPage(props: ResultPageProps) {
   const { submissionId } = await props.params;
@@ -24,5 +42,7 @@ export default async function ResultPage(props: ResultPageProps) {
     notFound();
   }
 
-  return <SubmissionResultView />;
+  const result = await getSubmissionResult(submissionId);
+
+  return <SubmissionResultView result={result} />;
 }

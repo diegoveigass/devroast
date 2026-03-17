@@ -1,8 +1,9 @@
-import type { BundledLanguage } from "shiki";
+import Link from "next/link";
 
+import type { SubmissionResultViewModel } from "@/app/result/submission-result-view-model";
 import {
   Badge,
-  Button,
+  buttonVariants,
   Card,
   CodeBlock,
   DiffLine,
@@ -14,108 +15,6 @@ type AnalysisItem = {
   description: string;
   tone: "critical" | "good" | "warning";
   title: string;
-};
-
-type DiffItem = {
-  code: string;
-  variant: "added" | "context" | "removed";
-};
-
-type SubmissionResult = {
-  code: string;
-  headline: string;
-  language: string;
-  lineCount: number;
-  roastLabel: string;
-  score: number;
-  shikiLanguage: BundledLanguage;
-  summary: AnalysisItem[];
-  suggestedFix: DiffItem[];
-};
-
-const submissionResult: SubmissionResult = {
-  code: [
-    "function calculateTotal(items) {",
-    "  var total = 0;",
-    "",
-    "  for (var i = 0; i < items.length; i++) {",
-    "    total = total + items[i].price;",
-    "  }",
-    "",
-    "  if (total > 100) {",
-    '    console.log("discount applied");',
-    "    total = total * 0.9;",
-    "  }",
-    "",
-    "  // TODO: handle tax calculation",
-    "  // TODO: handle currency conversion",
-    "",
-    "  return total;",
-    "}",
-  ].join("\n"),
-  headline:
-    '"this code looks like it was written during a power outage... in 2005."',
-  language: "javascript",
-  lineCount: 7,
-  roastLabel: "verdict: needs_serious_help",
-  score: 3.5,
-  shikiLanguage: "javascript",
-  suggestedFix: [
-    {
-      code: "function calculateTotal(items) {",
-      variant: "context",
-    },
-    {
-      code: "  var total = 0;",
-      variant: "removed",
-    },
-    {
-      code: "  for (var i = 0; i < items.length; i++) {",
-      variant: "removed",
-    },
-    {
-      code: "    total = total + items[i].price;",
-      variant: "removed",
-    },
-    {
-      code: "  }",
-      variant: "removed",
-    },
-    {
-      code: "  return items.reduce((sum, item) => sum + item.price, 0);",
-      variant: "added",
-    },
-    {
-      code: "}",
-      variant: "context",
-    },
-  ],
-  summary: [
-    {
-      description:
-        "var is function-scoped and invites hoisting bugs. Prefer const by default, and use let only when reassignment is real.",
-      title: "outdated mutation pattern",
-      tone: "critical",
-    },
-    {
-      description:
-        "The manual for loop works, but reduce() expresses the intent more directly and trims the ceremony.",
-      title: "imperative loop structure",
-      tone: "warning",
-    },
-    {
-      description:
-        "calculateTotal and items are descriptive names that make the purpose obvious without extra comments.",
-      title: "clear naming choices",
-      tone: "good",
-    },
-    {
-      description:
-        "The function still owns too much policy. Logging, discounting, and tax placeholders point to rules that should be isolated.",
-      title: "business rules are leaking in",
-      tone: "warning",
-    },
-  ],
 };
 
 function ResultIssueCard({ description, title, tone }: AnalysisItem) {
@@ -132,34 +31,60 @@ function ResultIssueCard({ description, title, tone }: AnalysisItem) {
   );
 }
 
-export async function SubmissionResultView() {
-  const codeLines = submissionResult.code.split("\n");
+type SubmissionResultViewProps = {
+  result: SubmissionResultViewModel;
+};
+
+export function SubmissionResultView({ result }: SubmissionResultViewProps) {
+  if (result.status === "not_found") {
+    return <ResultStatusCard message={result.message} status="not_found" />;
+  }
+
+  if (result.status === "processing") {
+    return (
+      <ResultStatusCard
+        message="// your roast is still cooking. refresh in a moment."
+        status="processing"
+      />
+    );
+  }
+
+  if (result.status === "failed") {
+    return (
+      <ResultStatusCard message={result.processingError} status="failed" />
+    );
+  }
+
+  const codeLines = result.code.split("\n");
 
   return (
     <main className="bg-bg-page text-text-primary">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-10 lg:px-20">
         <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
-          <ScoreRing value={submissionResult.score} />
+          <ScoreRing value={result.score} />
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <Badge size="sm" variant="verdict">
-              {submissionResult.roastLabel}
+              {result.verdictLabel}
             </Badge>
 
             <h1 className="max-w-4xl font-mono text-2xl leading-10 text-text-primary sm:text-3xl">
-              {submissionResult.headline}
+              {result.headline}
             </h1>
 
             <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-text-tertiary">
-              <span>{`lang: ${submissionResult.language}`}</span>
+              <span>{`lang: ${result.language ?? "unknown"}`}</span>
               <span>{"·"}</span>
-              <span>{`${submissionResult.lineCount} lines`}</span>
+              <span>{`${result.lineCount} lines`}</span>
             </div>
 
             <div>
-              <Button size="sm" variant="secondary">
-                {"$ share_roast"}
-              </Button>
+              <Link
+                className={buttonVariants({ size: "sm", variant: "secondary" })}
+                href="/"
+              >
+                {"$ roast_another"}
+              </Link>
             </div>
           </div>
         </section>
@@ -180,8 +105,8 @@ export async function SubmissionResultView() {
               />
               <CodeBlock.Content
                 className="px-4 py-4"
-                code={submissionResult.code}
-                lang={submissionResult.shikiLanguage}
+                code={result.code}
+                lang={result.shikiLanguage}
               />
             </CodeBlock.Body>
           </CodeBlock.Root>
@@ -192,7 +117,7 @@ export async function SubmissionResultView() {
         <Section.Root className="flex flex-col gap-6">
           <Section.Title>detailed_analysis</Section.Title>
           <div className="grid gap-5 md:grid-cols-2">
-            {submissionResult.summary.map((item) => (
+            {result.summary.map((item) => (
               <ResultIssueCard key={item.title} {...item} />
             ))}
           </div>
@@ -212,7 +137,7 @@ export async function SubmissionResultView() {
             </div>
 
             <div className="flex flex-col py-1">
-              {submissionResult.suggestedFix.map((line, index) => (
+              {result.diffLines.map((line, index) => (
                 <DiffLine
                   key={`${line.variant}-${index}`}
                   variant={line.variant}
@@ -223,6 +148,50 @@ export async function SubmissionResultView() {
             </div>
           </Card>
         </Section.Root>
+      </div>
+    </main>
+  );
+}
+
+function ResultStatusCard({
+  message,
+  status,
+}: {
+  message: string;
+  status: "failed" | "not_found" | "processing";
+}) {
+  const title =
+    status === "processing"
+      ? "roast_in_progress"
+      : status === "failed"
+        ? "roast_failed"
+        : "roast_not_found";
+
+  const badgeVariant =
+    status === "processing"
+      ? "warning"
+      : status === "failed"
+        ? "critical"
+        : "warning";
+
+  return (
+    <main className="bg-bg-page text-text-primary">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 pb-16 pt-16 lg:px-10">
+        <Card className="gap-5 bg-bg-surface p-8" size="lg" surface="surface">
+          <Badge size="sm" variant={badgeVariant}>
+            {title}
+          </Badge>
+          <h1 className="font-mono text-2xl text-text-primary">{title}</h1>
+          <p className="text-sm leading-6 text-text-secondary">{message}</p>
+          <div>
+            <Link
+              className={buttonVariants({ size: "sm", variant: "secondary" })}
+              href="/"
+            >
+              {"$ back_home"}
+            </Link>
+          </div>
+        </Card>
       </div>
     </main>
   );
