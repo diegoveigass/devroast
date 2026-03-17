@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import { Badge, CodeInput } from "@/components/ui";
 import { detectLanguage } from "@/lib/code-highlight/detect-language";
@@ -15,21 +15,29 @@ import { HomeCodeEditorLanguageSelect } from "./home-code-editor-language-select
 type HomeCodeEditorProps = {
   characterLimit: number;
   code: string;
+  onDetectedLanguageChange?: (value: SupportedLanguageId) => void;
   onCodeChange: (value: string) => void;
+  onSelectedLanguageChange: (value: SupportedLanguageId | null) => void;
+  selectedLanguage: SupportedLanguageId | null;
 };
 
 export function HomeCodeEditor({
   characterLimit,
   code,
+  onDetectedLanguageChange,
   onCodeChange,
+  onSelectedLanguageChange,
+  selectedLanguage,
 }: HomeCodeEditorProps) {
-  const [selectedLanguage, setSelectedLanguage] =
-    useState<SupportedLanguageId | null>(null);
   const detectedLanguage = useMemo(
     () =>
       code.trim().length === 0 ? DEFAULT_LANGUAGE_ID : detectLanguage(code),
     [code],
   );
+
+  useEffect(() => {
+    onDetectedLanguageChange?.(detectedLanguage);
+  }, [detectedLanguage, onDetectedLanguageChange]);
 
   const activeLanguage = selectedLanguage ?? detectedLanguage;
   const status = useMemo(() => {
@@ -64,7 +72,7 @@ export function HomeCodeEditor({
               {status.label}
             </Badge>
             <HomeCodeEditorLanguageSelect
-              onChange={setSelectedLanguage}
+              onChange={onSelectedLanguageChange}
               value={selectedLanguage}
             />
           </div>
