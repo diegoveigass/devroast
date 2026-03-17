@@ -5,6 +5,7 @@ import {
   LANGUAGE_BY_ID,
   normalizeLanguageAlias,
 } from "@/lib/code-highlight/languages";
+import { RESULT_NOT_FOUND_CODE } from "@/lib/roasts/contracts";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 type ResultOutput =
@@ -21,12 +22,51 @@ type DiffItem = {
   variant: "added" | "context" | "removed";
 };
 
+type StatusTone = "critical" | "warning" | "good";
+
+type StatusPresentation = {
+  badgeLabel: string;
+  badgeTone: StatusTone;
+  ctaHref: string;
+  ctaLabel: string;
+  description: string;
+  title: string;
+};
+
+const STATUS_VIEW_BY_STATUS = {
+  failed: {
+    badgeLabel: "failed",
+    badgeTone: "critical",
+    ctaHref: "/",
+    ctaLabel: "$ retry_from_home",
+    title: "roast_failed",
+  },
+  not_found: {
+    badgeLabel: "not_found",
+    badgeTone: "warning",
+    ctaHref: "/",
+    ctaLabel: "$ create_new_roast",
+    title: "roast_not_found",
+  },
+  processing: {
+    badgeLabel: "processing",
+    badgeTone: "good",
+    ctaHref: "/",
+    ctaLabel: "$ back_home",
+    title: "roast_in_progress",
+  },
+} satisfies Record<
+  "failed" | "not_found" | "processing",
+  Omit<StatusPresentation, "description">
+>;
+
 export type SubmissionResultViewModel =
   | {
       analysisItems: AnalysisItem[];
       code: string;
       diffLines: DiffItem[];
       headline: string;
+      kind: "completed";
       language: string;
       lineCount: number;
       roastLabel: string;
@@ -37,7 +77,12 @@ export type SubmissionResultViewModel =
       summary: string;
     }
   | {
+      badgeLabel: string;
+      badgeTone: StatusTone;
+      ctaHref: string;
+      ctaLabel: string;
       description: string;
+      kind: "status";
       status: "failed" | "not_found" | "processing";
       title: string;
     };
@@ -45,30 +90,26 @@ export type SubmissionResultViewModel =
 export function mapResultViewModel(
   result: ResultOutput,
 ): SubmissionResultViewModel {
-  if ("message" in result) {
-    return {
-      description:
-        "We couldn't find a roast for this submission id. Try creating a new one from the homepage.",
-      status: "not_found",
-      title: "roast_not_found",
-    };
+  if ("code" in result && result.code === RESULT_NOT_FOUND_CODE) {
+    return createStatusViewModel(
+      "not_found",
+      "We couldn't find a roast for this submission id. Try creating a new one from the homepage.",
+    );
   }
 
-  if (result.status === "processing") {
-    return {
-      description:
-        "Your roast is still cooking. Reload this page in a moment to check again.",
-      status: "processing",
-      title: "roast_in_progress",
-    };
+  if ("status" in result && result.status === "processing") {
+    return createStatusViewModel(
+      "processing",
+      "Your roast is still cooking. Reload this page in a moment to check again.",
+    );
   }
 
-  if (result.status === "failed") {
-    return {
-      description: result.processingError,
-      status: "failed",
-      title: "roast_failed",
-    };
+  if ("status" in result && result.status === "failed") {
+    return createStatusViewModel("failed", result.processingError);
+  }
+
+  if (!("status" in result) || result.status !== "completed") {
+    throw new Error("Unsupported roast result state.");
   }
 
   return {
@@ -83,6 +124,7 @@ export function mapResultViewModel(
       variant: line.lineType,
     })),
     headline: result.headline,
+    kind: "completed",
     language: result.language ?? "unknown",
     lineCount: result.lineCount,
     roastLabel: `verdict: ${result.verdict}`,
@@ -91,6 +133,18 @@ export function mapResultViewModel(
     status: "completed",
     submissionId: result.submissionId,
     summary: result.summary,
+  };
+}
+
+function createStatusViewModel(
+  status: "failed" | "not_found" | "processing",
+  description: string,
+): SubmissionResultViewModel {
+  return {
+    ...STATUS_VIEW_BY_STATUS[status],
+    description,
+    kind: "status",
+    status,
   };
 }
 

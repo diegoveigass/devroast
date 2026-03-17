@@ -17,11 +17,9 @@ type SubmissionResultViewProps = {
   result: SubmissionResultViewModel;
 };
 
-type StatusTone = "critical" | "warning" | "good";
-
 type ResultIssueCardProps = Extract<
   SubmissionResultViewModel,
-  { status: "completed" }
+  { kind: "completed" }
 >["analysisItems"][number];
 
 function ResultIssueCard({ description, title, tone }: ResultIssueCardProps) {
@@ -39,25 +37,7 @@ function ResultIssueCard({ description, title, tone }: ResultIssueCardProps) {
 }
 
 function ResultStatusState({ result }: SubmissionResultViewProps) {
-  const toneByStatus: Record<
-    Exclude<SubmissionResultViewModel["status"], "completed">,
-    StatusTone
-  > = {
-    failed: "critical",
-    not_found: "warning",
-    processing: "good",
-  };
-
-  const ctaByStatus: Record<
-    Exclude<SubmissionResultViewModel["status"], "completed">,
-    string
-  > = {
-    failed: "$ retry_from_home",
-    not_found: "$ create_new_roast",
-    processing: "$ back_home",
-  };
-
-  if (result.status === "completed") {
+  if (result.kind !== "status") {
     return null;
   }
 
@@ -65,8 +45,8 @@ function ResultStatusState({ result }: SubmissionResultViewProps) {
     <main className="bg-bg-page text-text-primary">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-10 lg:px-20">
         <section className="flex flex-col gap-6">
-          <Badge size="sm" variant={toneByStatus[result.status]}>
-            {result.status}
+          <Badge size="sm" variant={result.badgeTone}>
+            {result.badgeLabel}
           </Badge>
 
           <div className="flex max-w-3xl flex-col gap-4">
@@ -94,9 +74,9 @@ function ResultStatusState({ result }: SubmissionResultViewProps) {
           <div className="flex flex-wrap gap-3">
             <Link
               className={buttonVariants({ size: "sm", variant: "secondary" })}
-              href="/"
+              href={result.ctaHref}
             >
-              {ctaByStatus[result.status]}
+              {result.ctaLabel}
             </Link>
           </div>
         </Card>
@@ -106,7 +86,7 @@ function ResultStatusState({ result }: SubmissionResultViewProps) {
 }
 
 export function SubmissionResultView({ result }: SubmissionResultViewProps) {
-  if (result.status !== "completed") {
+  if (result.kind === "status") {
     return <ResultStatusState result={result} />;
   }
 

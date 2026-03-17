@@ -5,9 +5,7 @@ import { getQueryClient, trpc } from "@/trpc/server";
 
 import { SubmissionResultView } from "./_components/submission-result-view";
 import { mapResultViewModel } from "./_lib/map-result-view-model";
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+import { resolveResultRouteParams } from "./_lib/result-route";
 
 type ResultPageProps = {
   params: Promise<{
@@ -21,15 +19,17 @@ export const metadata: Metadata = {
 };
 
 export default async function ResultPage(props: ResultPageProps) {
-  const { submissionId } = await props.params;
+  const route = resolveResultRouteParams(await props.params);
 
-  if (!UUID_REGEX.test(submissionId)) {
+  if (route.kind === "invalid") {
     notFound();
   }
 
   const queryClient = getQueryClient();
   const result = await queryClient.fetchQuery(
-    trpc.roasts.getBySubmissionId.queryOptions({ submissionId }),
+    trpc.roasts.getBySubmissionId.queryOptions({
+      submissionId: route.submissionId,
+    }),
   );
 
   return <SubmissionResultView result={mapResultViewModel(result)} />;

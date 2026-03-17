@@ -3,6 +3,7 @@ import test from "node:test";
 
 import type { inferRouterOutputs } from "@trpc/server";
 
+import { RESULT_NOT_FOUND_CODE } from "@/lib/roasts/contracts";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 import { mapResultViewModel } from "./map-result-view-model";
@@ -51,6 +52,7 @@ test("maps completed roast result into the view model used by the page", () => {
 
   const result = mapResultViewModel(input);
 
+  assert.equal(result.kind, "completed");
   assert.equal(result.status, "completed");
   assert.equal(result.roastLabel, "verdict: rough");
   assert.equal(result.shikiLanguage, "typescript");
@@ -85,7 +87,12 @@ test("maps failed roast result into a retry-oriented state", () => {
   const result = mapResultViewModel(input);
 
   assert.deepEqual(result, {
+    badgeLabel: "failed",
+    badgeTone: "critical",
+    ctaHref: "/",
+    ctaLabel: "$ retry_from_home",
     description: "Provider unavailable.",
+    kind: "status",
     status: "failed",
     title: "roast_failed",
   });
@@ -99,8 +106,13 @@ test("maps processing roast result into a pending state", () => {
   const result = mapResultViewModel(input);
 
   assert.deepEqual(result, {
+    badgeLabel: "processing",
+    badgeTone: "good",
+    ctaHref: "/",
+    ctaLabel: "$ back_home",
     description:
       "Your roast is still cooking. Reload this page in a moment to check again.",
+    kind: "status",
     status: "processing",
     title: "roast_in_progress",
   });
@@ -108,7 +120,7 @@ test("maps processing roast result into a pending state", () => {
 
 test("maps RESULT_NOT_FOUND payload into a not_found view state", () => {
   const input: ResultOutput = {
-    code: "RESULT_NOT_FOUND",
+    code: RESULT_NOT_FOUND_CODE,
     message:
       "Roast result for submission 11111111-1111-4111-8111-111111111111 was not found.",
   };
@@ -116,8 +128,13 @@ test("maps RESULT_NOT_FOUND payload into a not_found view state", () => {
   const result = mapResultViewModel(input);
 
   assert.deepEqual(result, {
+    badgeLabel: "not_found",
+    badgeTone: "warning",
+    ctaHref: "/",
+    ctaLabel: "$ create_new_roast",
     description:
       "We couldn't find a roast for this submission id. Try creating a new one from the homepage.",
+    kind: "status",
     status: "not_found",
     title: "roast_not_found",
   });
