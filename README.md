@@ -2,7 +2,7 @@
 
 DevRoast is a playful web app where you paste a piece of code and get it judged with a more opinionated, roast-style experience.
 
-This project was built during the NLW from Rocketseat and is focused on creating the product interface and interaction flow before connecting any real backend or API.
+This project started during NLW from Rocketseat and now includes the real roast creation flow, from submission to persisted results.
 
 ## What the app does
 
@@ -13,7 +13,7 @@ This project was built during the NLW from Rocketseat and is focused on creating
 
 ## Current status
 
-The app now supports the full roast creation flow: submit code, run the roast analysis, persist the result, and open the result page with real data.
+The app supports the full roast creation flow: submit code, run the roast analysis, persist the result, and open the result page with real data.
 
 ## Main screens
 
@@ -32,17 +32,17 @@ The app now supports the full roast creation flow: submit code, run the roast an
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .env.example .env
 npm run dev
 ```
 
-Set these env vars in `.env.local` before testing the real roast flow:
+Set these env vars in `.env` before testing the real roast flow:
 
 - `DATABASE_URL`: local Postgres connection string used by the app and tests
 - `OPENAI_API_KEY`: required to call the OpenAI provider for real roast generation
 - `OPENAI_MODEL`: optional override for the model, defaults to `gpt-4o-mini`
 
-The included `.env.example` already contains a safe local `DATABASE_URL` for the default Docker setup.
+The included `.env.example` already contains a safe local `DATABASE_URL` for the default Docker setup. Keep the values in `.env`, because the Drizzle tooling and the DB-backed router test read from that file.
 
 If you need the local database:
 
@@ -55,7 +55,8 @@ Then open `http://localhost:3000`.
 
 ## Local roast verification
 
-- automated roast tests use mocked provider calls, so a real `OPENAI_API_KEY` is not required for `npm run test:roasts`
+- `npm run test:roasts` only covers mocked roast-analysis tests, so a real `OPENAI_API_KEY` is not required there
+- `node --import tsx --test src/trpc/routers/roasts.test.ts` is DB-backed: it needs `DATABASE_URL` in `.env` and a migrated local schema before it can pass
 - manual verification of the full roast flow does require a valid `OPENAI_API_KEY`
 - for a quick manual check, start the app, paste a code sample on the homepage, submit it, and confirm the app redirects to `/result/[submissionId]` with persisted roast data
 
