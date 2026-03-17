@@ -24,6 +24,9 @@ import { resolveOpenAIModel } from "@/lib/roasts/providers/openai-provider";
 import { publicProcedure, router } from "../init";
 
 const REDACTED_TOKEN = "[REDACTED]";
+const PERSISTENCE_ERROR_MESSAGE = "Unable to persist roast results.";
+const FAILED_STATE_PERSISTENCE_MESSAGE =
+  "Failed to persist failed submission state.";
 const CREATE_SUBMISSION_ERROR_CODES = [
   PROVIDER_TIMEOUT_CODE,
   PROVIDER_UNAVAILABLE_CODE,
@@ -116,26 +119,30 @@ function sanitizeErrorMessage(message: string) {
     );
 }
 
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return sanitizeErrorMessage(error.message);
-  }
-
-  return "Unexpected roast processing failure.";
-}
-
 function isCreateSubmissionErrorCode(
   code: RoastDomainError["code"],
 ): code is CreateSubmissionErrorCode {
   return CREATE_SUBMISSION_ERROR_CODES.some((value) => value === code);
 }
 
+function withFailureStatePersistenceMessage(message: string) {
+  return `${message} ${FAILED_STATE_PERSISTENCE_MESSAGE}`;
+}
+
 function toCreateSubmissionError(error: unknown, submissionId?: string) {
   if (error instanceof RoastDomainError) {
+    if (error.code === PERSISTENCE_ERROR_CODE) {
+      return {
+        code: PERSISTENCE_ERROR_CODE,
+        message: PERSISTENCE_ERROR_MESSAGE,
+        submissionId: error.submissionId ?? submissionId,
+      };
+    }
+
     if (!isCreateSubmissionErrorCode(error.code)) {
       return {
         code: PERSISTENCE_ERROR_CODE,
-        message: sanitizeErrorMessage(error.message),
+        message: PERSISTENCE_ERROR_MESSAGE,
         submissionId: error.submissionId ?? submissionId,
       };
     }
@@ -149,7 +156,7 @@ function toCreateSubmissionError(error: unknown, submissionId?: string) {
 
   return {
     code: PERSISTENCE_ERROR_CODE,
-    message: getErrorMessage(error),
+    message: PERSISTENCE_ERROR_MESSAGE,
     submissionId,
   };
 }
@@ -209,7 +216,11 @@ export function createRoastsRouter(
                 submission.id,
                 sanitizeErrorMessage(mappedError.message),
               );
-            } catch {}
+            } catch {
+              mappedError.message = withFailureStatePersistenceMessage(
+                mappedError.message,
+              );
+            }
           }
 
           return mappedError;

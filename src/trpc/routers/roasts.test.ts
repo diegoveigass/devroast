@@ -374,11 +374,11 @@ test("createSubmissionRecord rejection maps to typed persistence error", async (
 
   assertCreateError(result);
   assert.equal(result.code, PERSISTENCE_ERROR_CODE);
-  assert.equal(result.message, "pre-submission insert failed");
+  assert.equal(result.message, "Unable to persist roast results.");
   assert.equal(result.submissionId, undefined);
 });
 
-test("markSubmissionFailed rejection does not mask provider error", async () => {
+test("markSubmissionFailed rejection preserves provider error with fallback note", async () => {
   const caller = await createCaller({
     markSubmissionFailed: async () => {
       throw new Error("failed to persist failure state");
@@ -399,11 +399,14 @@ test("markSubmissionFailed rejection does not mask provider error", async () => 
 
   assertCreateError(result);
   assert.equal(result.code, PROVIDER_UNAVAILABLE_CODE);
-  assert.equal(result.message, "Provider offline OPENAI_API_KEY=[REDACTED]");
+  assert.equal(
+    result.message,
+    "Provider offline OPENAI_API_KEY=[REDACTED] Failed to persist failed submission state.",
+  );
   assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
 });
 
-test("markSubmissionFailed rejection does not mask persistence error", async () => {
+test("markSubmissionFailed rejection preserves persistence error with fallback note", async () => {
   const caller = await createCaller({
     markSubmissionFailed: async () => {
       throw new Error("failed to persist failure state");
@@ -422,8 +425,33 @@ test("markSubmissionFailed rejection does not mask persistence error", async () 
 
   assertCreateError(result);
   assert.equal(result.code, PERSISTENCE_ERROR_CODE);
-  assert.equal(result.message, "simulated persistence failure");
+  assert.equal(
+    result.message,
+    "Unable to persist roast results. Failed to persist failed submission state.",
+  );
   assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
+});
+
+test("raw persistence errors are sanitized to stable user-safe messaging", async () => {
+  const caller = await createCaller({
+    persistAnalysis: async () => {
+      throw new Error(
+        'duplicate key value violates unique constraint "roast_results_submission_id_key"',
+      );
+    },
+    runAnalysis: async () => ANALYSIS_OUTPUT,
+  });
+
+  const result = await caller.createSubmission({
+    code: createTestCode("sanitized-persistence-message"),
+    language: "typescript",
+    roastMode: "honest",
+  });
+
+  assertCreateError(result);
+  assert.equal(result.code, PERSISTENCE_ERROR_CODE);
+  assert.equal(result.message, "Unable to persist roast results.");
+  assert.doesNotMatch(result.message, /duplicate key value/i);
 });
 
 test("failed status with sanitized processingError persists on provider failure", async () => {
