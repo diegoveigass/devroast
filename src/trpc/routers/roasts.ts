@@ -27,6 +27,7 @@ const REDACTED_TOKEN = "[REDACTED]";
 const PERSISTENCE_ERROR_MESSAGE = "Unable to persist roast results.";
 const FAILED_STATE_PERSISTENCE_MESSAGE =
   "Failed to persist failed submission state.";
+export const MAX_SUBMISSION_CODE_CHARACTERS = 2_000;
 const CREATE_SUBMISSION_ERROR_CODES = [
   PROVIDER_TIMEOUT_CODE,
   PROVIDER_UNAVAILABLE_CODE,
@@ -36,7 +37,7 @@ const CREATE_SUBMISSION_ERROR_CODES = [
 type CreateSubmissionErrorCode = (typeof CREATE_SUBMISSION_ERROR_CODES)[number];
 
 const createSubmissionInputSchema = z.object({
-  code: z.string().min(1),
+  code: z.string().min(1).max(MAX_SUBMISSION_CODE_CHARACTERS),
   language: z.string().min(1),
   roastMode: roastModeSchema,
   source: z.string().min(1).optional().default("web"),

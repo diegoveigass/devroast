@@ -21,7 +21,7 @@ import {
 } from "@/lib/roasts/contracts";
 import { createTRPCContextInner } from "@/trpc/init";
 
-import { createRoastsRouter } from "./roasts";
+import { createRoastsRouter, MAX_SUBMISSION_CODE_CHARACTERS } from "./roasts";
 
 const TEST_CODE_PREFIX = "// trpc roasts test";
 
@@ -57,6 +57,10 @@ afterEach(async () => {
 
 function createTestCode(label: string) {
   return `${TEST_CODE_PREFIX} ${label}\nconsole.log("${label}");`;
+}
+
+function createOversizedTestCode() {
+  return "x".repeat(MAX_SUBMISSION_CODE_CHARACTERS + 1);
 }
 
 function assertCreateCompleted(
@@ -211,6 +215,28 @@ test("createSubmission success returns completed payload with UUID", async () =>
   assertCompletedResult(stored);
   assert.equal(stored.language, "typescript");
   assert.equal(stored.score, ANALYSIS_OUTPUT.score);
+});
+
+test("createSubmission rejects code payloads over 2000 characters", async () => {
+  let createSubmissionRecordCalled = false;
+  const caller = await createCaller({
+    createSubmissionRecord: async () => {
+      createSubmissionRecordCalled = true;
+      throw new Error(
+        "createSubmissionRecord should not run for invalid input",
+      );
+    },
+  });
+
+  await assert.rejects(async () => {
+    await caller.createSubmission({
+      code: createOversizedTestCode(),
+      language: "typescript",
+      roastMode: "honest",
+    });
+  }, /2000|too big/i);
+
+  assert.equal(createSubmissionRecordCalled, false);
 });
 
 test("manual language override persists and reads back", async () => {
