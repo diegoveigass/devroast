@@ -56,7 +56,7 @@ Then open `http://localhost:3000`.
 ## Local roast verification
 
 - `npm run test:roasts` only covers mocked roast-analysis tests, so a real `OPENAI_API_KEY` is not required there
-- `node --import tsx --test src/trpc/routers/roasts.test.ts` is DB-backed: it needs `DATABASE_URL` in `.env` and a migrated local schema before it can pass
+- `node --import=dotenv/config --import=tsx --test src/trpc/routers/roasts.test.ts` is DB-backed: it explicitly loads `.env`, needs `DATABASE_URL`, and expects a migrated local schema before it can pass
 - manual verification of the full roast flow does require a valid `OPENAI_API_KEY`
 - for a quick manual check, start the app, paste a code sample on the homepage, submit it, and confirm the app redirects to `/result/[submissionId]` with persisted roast data
 
@@ -64,7 +64,7 @@ Then open `http://localhost:3000`.
 
 ```bash
 npm run test:roasts
-node --import tsx --test src/trpc/routers/roasts.test.ts
+node --import=dotenv/config --import=tsx --test src/trpc/routers/roasts.test.ts
 npm run format
 npm run lint
 npm run build
