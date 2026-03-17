@@ -17,6 +17,24 @@ type RunRoastAnalysisInput = {
   roastMode: RoastMode;
 };
 
+type RunRoastAnalysisDependencies = {
+  runProvider?: typeof runOpenAIProvider;
+  normalizeOutput?: typeof normalizeRoastOutput;
+};
+
+const PROVIDER_TIMEOUT_ERROR_NAMES = new Set([
+  "APIConnectionTimeoutError",
+  "TimeoutError",
+]);
+
+const PROVIDER_UNAVAILABLE_ERROR_NAMES = new Set([
+  "APIConnectionError",
+  "APIError",
+  "OpenAIError",
+  "NetworkError",
+  "FetchError",
+]);
+
 function sanitizeErrorMessage(message: string) {
   return message
     .replaceAll(/sk-[a-zA-Z0-9_-]+/g, REDACTED_TOKEN)
@@ -44,7 +62,7 @@ function mapProviderError(error: unknown) {
   }
 
   if (error instanceof Error) {
-    if (error.name === "APIConnectionTimeoutError") {
+    if (PROVIDER_TIMEOUT_ERROR_NAMES.has(error.name)) {
       return new RoastDomainError(
         PROVIDER_TIMEOUT_CODE,
         getErrorMessage(error),
@@ -54,11 +72,7 @@ function mapProviderError(error: unknown) {
       );
     }
 
-    if (
-      error.name === "APIConnectionError" ||
-      error.name === "APIError" ||
-      error.name.endsWith("Error")
-    ) {
+    if (PROVIDER_UNAVAILABLE_ERROR_NAMES.has(error.name)) {
       return new RoastDomainError(
         PROVIDER_UNAVAILABLE_CODE,
         getErrorMessage(error),
@@ -67,27 +81,28 @@ function mapProviderError(error: unknown) {
         },
       );
     }
+
+    throw error;
   }
 
-  return new RoastDomainError(
-    PROVIDER_UNAVAILABLE_CODE,
-    "Provider unavailable",
-    {
-      cause: error,
-    },
-  );
+  throw error;
 }
 
-export async function runRoastAnalysis(input: RunRoastAnalysisInput) {
+export async function runRoastAnalysis(
+  input: RunRoastAnalysisInput,
+  dependencies: RunRoastAnalysisDependencies = {},
+) {
+  const runProvider = dependencies.runProvider ?? runOpenAIProvider;
+  const normalizeOutput = dependencies.normalizeOutput ?? normalizeRoastOutput;
   const prompt = buildRoastPrompt(input);
 
   try {
-    const providerOutput = await runOpenAIProvider({
+    const providerOutput = await runProvider({
       systemPrompt: prompt.systemPrompt,
       userPrompt: prompt.userPrompt,
     });
 
-    return normalizeRoastOutput(providerOutput);
+    return normalizeOutput(providerOutput);
   } catch (error) {
     throw mapProviderError(error);
   }

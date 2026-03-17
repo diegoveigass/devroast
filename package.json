@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --import tsx --test",
-    "test:roasts": "node --import tsx --test src/lib/roasts/normalize-roast-output.test.ts",
+    "test:roasts": "node --import tsx --test src/lib/roasts/normalize-roast-output.test.ts src/lib/roasts/analysis.test.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
