@@ -359,6 +359,71 @@ test("persistence failure maps correctly", async () => {
   assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
 });
 
+test("createSubmissionRecord rejection maps to typed persistence error", async () => {
+  const caller = await createCaller({
+    createSubmissionRecord: async () => {
+      throw new Error("pre-submission insert failed");
+    },
+  });
+
+  const result = await caller.createSubmission({
+    code: createTestCode("create-record-failure"),
+    language: "typescript",
+    roastMode: "honest",
+  });
+
+  assertCreateError(result);
+  assert.equal(result.code, PERSISTENCE_ERROR_CODE);
+  assert.equal(result.message, "pre-submission insert failed");
+  assert.equal(result.submissionId, undefined);
+});
+
+test("markSubmissionFailed rejection does not mask provider error", async () => {
+  const caller = await createCaller({
+    markSubmissionFailed: async () => {
+      throw new Error("failed to persist failure state");
+    },
+    runAnalysis: async () => {
+      throw new RoastDomainError(
+        PROVIDER_UNAVAILABLE_CODE,
+        "Provider offline OPENAI_API_KEY=sk-secret",
+      );
+    },
+  });
+
+  const result = await caller.createSubmission({
+    code: createTestCode("mark-failed-provider-error"),
+    language: "typescript",
+    roastMode: "honest",
+  });
+
+  assertCreateError(result);
+  assert.equal(result.code, PROVIDER_UNAVAILABLE_CODE);
+  assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
+});
+
+test("markSubmissionFailed rejection does not mask persistence error", async () => {
+  const caller = await createCaller({
+    markSubmissionFailed: async () => {
+      throw new Error("failed to persist failure state");
+    },
+    persistAnalysis: async () => {
+      throw new Error("simulated persistence failure");
+    },
+    runAnalysis: async () => ANALYSIS_OUTPUT,
+  });
+
+  const result = await caller.createSubmission({
+    code: createTestCode("mark-failed-persistence-error"),
+    language: "typescript",
+    roastMode: "honest",
+  });
+
+  assertCreateError(result);
+  assert.equal(result.code, PERSISTENCE_ERROR_CODE);
+  assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
+});
+
 test("failed status with sanitized processingError persists on provider failure", async () => {
   const caller = await createCaller({
     runAnalysis: async () => {

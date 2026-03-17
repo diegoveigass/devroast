@@ -130,7 +130,7 @@ function isCreateSubmissionErrorCode(
   return CREATE_SUBMISSION_ERROR_CODES.some((value) => value === code);
 }
 
-function toCreateSubmissionError(error: unknown, submissionId: string) {
+function toCreateSubmissionError(error: unknown, submissionId?: string) {
   if (error instanceof RoastDomainError) {
     if (!isCreateSubmissionErrorCode(error.code)) {
       return {
@@ -173,9 +173,13 @@ export function createRoastsRouter(
       .input(createSubmissionInputSchema)
       .output(createSubmissionOutputSchema)
       .mutation(async ({ input }) => {
-        const submission = await createSubmissionRecord(input);
+        let submission: Awaited<
+          ReturnType<typeof createSubmissionRecord>
+        > | null = null;
 
         try {
+          submission = await createSubmissionRecord(input);
+
           const analysis = await runAnalysis({
             code: input.code,
             language: input.language,
@@ -197,12 +201,16 @@ export function createRoastsRouter(
             submissionId: submission.id,
           };
         } catch (error) {
-          const mappedError = toCreateSubmissionError(error, submission.id);
+          const mappedError = toCreateSubmissionError(error, submission?.id);
 
-          await markSubmissionFailed(
-            submission.id,
-            sanitizeErrorMessage(mappedError.message),
-          );
+          if (submission) {
+            try {
+              await markSubmissionFailed(
+                submission.id,
+                sanitizeErrorMessage(mappedError.message),
+              );
+            } catch {}
+          }
 
           return mappedError;
         }
