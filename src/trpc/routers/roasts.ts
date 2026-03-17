@@ -74,6 +74,7 @@ const failedSubmissionSchema = z.object({
 const resultNotFoundSchema = z.object({
   code: z.literal(RESULT_NOT_FOUND_CODE),
   message: z.string(),
+  status: z.literal("not_found"),
 });
 
 const createSubmissionSuccessSchema = z.object({
@@ -236,6 +237,7 @@ export function createRoastsRouter(
           return {
             code: RESULT_NOT_FOUND_CODE,
             message: `Roast result for submission ${input.submissionId} was not found.`,
+            status: "not_found" as const,
           };
         }
 

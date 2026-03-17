@@ -124,9 +124,14 @@ function assertNotFoundResult(
   result: Awaited<
     ReturnType<Awaited<ReturnType<typeof createCaller>>["getBySubmissionId"]>
   >,
-): asserts result is { code: typeof RESULT_NOT_FOUND_CODE; message: string } {
+): asserts result is {
+  code: typeof RESULT_NOT_FOUND_CODE;
+  message: string;
+  status: "not_found";
+} {
   assert.ok("code" in result);
   assert.equal(result.code, RESULT_NOT_FOUND_CODE);
+  assert.equal(result.status, "not_found");
 }
 
 async function createCaller(

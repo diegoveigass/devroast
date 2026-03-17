@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getQueryClient, trpc } from "@/trpc/server";
-
 import { SubmissionResultView } from "./_components/submission-result-view";
+import { getResultQuery } from "./_lib/get-result-query";
 import { mapResultViewModel } from "./_lib/map-result-view-model";
 import { resolveResultRouteParams } from "./_lib/result-route";
 
@@ -25,12 +24,7 @@ export default async function ResultPage(props: ResultPageProps) {
     notFound();
   }
 
-  const queryClient = getQueryClient();
-  const result = await queryClient.fetchQuery(
-    trpc.roasts.getBySubmissionId.queryOptions({
-      submissionId: route.submissionId,
-    }),
-  );
+  const result = await getResultQuery(route.submissionId);
 
   return <SubmissionResultView result={mapResultViewModel(result)} />;
 }

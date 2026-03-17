@@ -5,7 +5,6 @@ import {
   LANGUAGE_BY_ID,
   normalizeLanguageAlias,
 } from "@/lib/code-highlight/languages";
-import { RESULT_NOT_FOUND_CODE } from "@/lib/roasts/contracts";
 import type { AppRouter } from "@/trpc/routers/_app";
 
 type ResultOutput =
@@ -90,7 +89,7 @@ export type SubmissionResultViewModel =
 export function mapResultViewModel(
   result: ResultOutput,
 ): SubmissionResultViewModel {
-  if ("code" in result && result.code === RESULT_NOT_FOUND_CODE) {
+  if (result.status === "not_found") {
     return createStatusViewModel(
       "not_found",
       "We couldn't find a roast for this submission id. Try creating a new one from the homepage.",

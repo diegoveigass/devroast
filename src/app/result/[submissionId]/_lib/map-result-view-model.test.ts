@@ -123,6 +123,7 @@ test("maps RESULT_NOT_FOUND payload into a not_found view state", () => {
     code: RESULT_NOT_FOUND_CODE,
     message:
       "Roast result for submission 11111111-1111-4111-8111-111111111111 was not found.",
+    status: "not_found",
   };
 
   const result = mapResultViewModel(input);
@@ -138,4 +139,28 @@ test("maps RESULT_NOT_FOUND payload into a not_found view state", () => {
     status: "not_found",
     title: "roast_not_found",
   });
+});
+
+test("does not treat completed payload code as a not_found sentinel", () => {
+  const input: ResultOutput = {
+    code: RESULT_NOT_FOUND_CODE,
+    diffLines: [],
+    headline: '"that sentinel belongs in the transport layer, not the roast."',
+    issues: [],
+    language: "typescript",
+    lineCount: 1,
+    publicId: "sub_456",
+    roastMode: "full_roast",
+    score: 7.4,
+    status: "completed",
+    submissionId: "22222222-2222-4222-8222-222222222222",
+    summary: "Completed payloads should win over transport error sentinels.",
+    verdict: "solid",
+  };
+
+  const result = mapResultViewModel(input);
+
+  assert.equal(result.kind, "completed");
+  assert.equal(result.code, RESULT_NOT_FOUND_CODE);
+  assert.equal(result.status, "completed");
 });
