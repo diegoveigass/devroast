@@ -1,8 +1,9 @@
-import type { BundledLanguage } from "shiki";
+import Link from "next/link";
 
 import {
   Badge,
   Button,
+  buttonVariants,
   Card,
   CodeBlock,
   DiffLine,
@@ -10,115 +11,20 @@ import {
   Section,
 } from "@/components/ui";
 
-type AnalysisItem = {
-  description: string;
-  tone: "critical" | "good" | "warning";
-  title: string;
+import type { SubmissionResultViewModel } from "../_lib/map-result-view-model";
+
+type SubmissionResultViewProps = {
+  result: SubmissionResultViewModel;
 };
 
-type DiffItem = {
-  code: string;
-  variant: "added" | "context" | "removed";
-};
+type StatusTone = "critical" | "warning" | "good";
 
-type SubmissionResult = {
-  code: string;
-  headline: string;
-  language: string;
-  lineCount: number;
-  roastLabel: string;
-  score: number;
-  shikiLanguage: BundledLanguage;
-  summary: AnalysisItem[];
-  suggestedFix: DiffItem[];
-};
+type ResultIssueCardProps = Extract<
+  SubmissionResultViewModel,
+  { status: "completed" }
+>["analysisItems"][number];
 
-const submissionResult: SubmissionResult = {
-  code: [
-    "function calculateTotal(items) {",
-    "  var total = 0;",
-    "",
-    "  for (var i = 0; i < items.length; i++) {",
-    "    total = total + items[i].price;",
-    "  }",
-    "",
-    "  if (total > 100) {",
-    '    console.log("discount applied");',
-    "    total = total * 0.9;",
-    "  }",
-    "",
-    "  // TODO: handle tax calculation",
-    "  // TODO: handle currency conversion",
-    "",
-    "  return total;",
-    "}",
-  ].join("\n"),
-  headline:
-    '"this code looks like it was written during a power outage... in 2005."',
-  language: "javascript",
-  lineCount: 7,
-  roastLabel: "verdict: needs_serious_help",
-  score: 3.5,
-  shikiLanguage: "javascript",
-  suggestedFix: [
-    {
-      code: "function calculateTotal(items) {",
-      variant: "context",
-    },
-    {
-      code: "  var total = 0;",
-      variant: "removed",
-    },
-    {
-      code: "  for (var i = 0; i < items.length; i++) {",
-      variant: "removed",
-    },
-    {
-      code: "    total = total + items[i].price;",
-      variant: "removed",
-    },
-    {
-      code: "  }",
-      variant: "removed",
-    },
-    {
-      code: "  return items.reduce((sum, item) => sum + item.price, 0);",
-      variant: "added",
-    },
-    {
-      code: "}",
-      variant: "context",
-    },
-  ],
-  summary: [
-    {
-      description:
-        "var is function-scoped and invites hoisting bugs. Prefer const by default, and use let only when reassignment is real.",
-      title: "outdated mutation pattern",
-      tone: "critical",
-    },
-    {
-      description:
-        "The manual for loop works, but reduce() expresses the intent more directly and trims the ceremony.",
-      title: "imperative loop structure",
-      tone: "warning",
-    },
-    {
-      description:
-        "calculateTotal and items are descriptive names that make the purpose obvious without extra comments.",
-      title: "clear naming choices",
-      tone: "good",
-    },
-    {
-      description:
-        "The function still owns too much policy. Logging, discounting, and tax placeholders point to rules that should be isolated.",
-      title: "business rules are leaking in",
-      tone: "warning",
-    },
-  ],
-};
-
-function ResultIssueCard({ description, title, tone }: AnalysisItem) {
+function ResultIssueCard({ description, title, tone }: ResultIssueCardProps) {
   return (
     <Card className="gap-3 bg-bg-page" size="lg" surface="page">
       <Badge size="sm" variant={tone}>
@@ -132,28 +38,103 @@ function ResultIssueCard({ description, title, tone }: AnalysisItem) {
   );
 }
 
-export async function SubmissionResultView() {
-  const codeLines = submissionResult.code.split("\n");
+function ResultStatusState({ result }: SubmissionResultViewProps) {
+  const toneByStatus: Record<
+    Exclude<SubmissionResultViewModel["status"], "completed">,
+    StatusTone
+  > = {
+    failed: "critical",
+    not_found: "warning",
+    processing: "good",
+  };
+
+  const ctaByStatus: Record<
+    Exclude<SubmissionResultViewModel["status"], "completed">,
+    string
+  > = {
+    failed: "$ retry_from_home",
+    not_found: "$ create_new_roast",
+    processing: "$ back_home",
+  };
+
+  if (result.status === "completed") {
+    return null;
+  }
+
+  return (
+    <main className="bg-bg-page text-text-primary">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-10 lg:px-20">
+        <section className="flex flex-col gap-6">
+          <Badge size="sm" variant={toneByStatus[result.status]}>
+            {result.status}
+          </Badge>
+
+          <div className="flex max-w-3xl flex-col gap-4">
+            <h1 className="font-mono text-2xl leading-10 text-text-primary sm:text-3xl">
+              {result.title}
+            </h1>
+            <p className="text-sm leading-7 text-text-secondary">
+              {result.description}
+            </p>
+          </div>
+        </section>
+
+        <div className="h-px bg-border-primary" />
+
+        <Card className="gap-5" size="lg" surface="surface">
+          <Section.Header className="gap-3">
+            <Section.Title>result_status</Section.Title>
+            <Section.Description>
+              {
+                "This page stays server-rendered and reflects the stored submission state."
+              }
+            </Section.Description>
+          </Section.Header>
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className={buttonVariants({ size: "sm", variant: "secondary" })}
+              href="/"
+            >
+              {ctaByStatus[result.status]}
+            </Link>
+          </div>
+        </Card>
+      </div>
+    </main>
+  );
+}
+
+export function SubmissionResultView({ result }: SubmissionResultViewProps) {
+  if (result.status !== "completed") {
+    return <ResultStatusState result={result} />;
+  }
+
+  const codeLines = result.code.split("\n");
 
   return (
     <main className="bg-bg-page text-text-primary">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-6 pb-16 pt-10 lg:px-20">
         <section className="flex flex-col gap-8 lg:flex-row lg:items-center lg:gap-12">
-          <ScoreRing value={submissionResult.score} />
+          <ScoreRing value={result.score} />
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
             <Badge size="sm" variant="verdict">
-              {submissionResult.roastLabel}
+              {result.roastLabel}
             </Badge>
 
             <h1 className="max-w-4xl font-mono text-2xl leading-10 text-text-primary sm:text-3xl">
-              {submissionResult.headline}
+              {result.headline}
             </h1>
 
+            <p className="max-w-3xl text-sm leading-7 text-text-secondary">
+              {result.summary}
+            </p>
+
             <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-text-tertiary">
-              <span>{`lang: ${submissionResult.language}`}</span>
+              <span>{`lang: ${result.language}`}</span>
               <span>{"·"}</span>
-              <span>{`${submissionResult.lineCount} lines`}</span>
+              <span>{`${result.lineCount} lines`}</span>
             </div>
 
             <div>
@@ -180,8 +161,8 @@ export async function SubmissionResultView() {
               />
               <CodeBlock.Content
                 className="px-4 py-4"
-                code={submissionResult.code}
-                lang={submissionResult.shikiLanguage}
+                code={result.code}
+                lang={result.shikiLanguage}
               />
             </CodeBlock.Body>
           </CodeBlock.Root>
@@ -190,9 +171,13 @@ export async function SubmissionResultView() {
         <div className="h-px bg-border-primary" />
 
         <Section.Root className="flex flex-col gap-6">
-          <Section.Title>detailed_analysis</Section.Title>
+          <Section.Header className="gap-3">
+            <Section.Title>detailed_analysis</Section.Title>
+            <Section.Description>{result.summary}</Section.Description>
+          </Section.Header>
+
           <div className="grid gap-5 md:grid-cols-2">
-            {submissionResult.summary.map((item) => (
+            {result.analysisItems.map((item) => (
               <ResultIssueCard key={item.title} {...item} />
             ))}
           </div>
@@ -212,7 +197,7 @@ export async function SubmissionResultView() {
             </div>
 
             <div className="flex flex-col py-1">
-              {submissionResult.suggestedFix.map((line, index) => (
+              {result.diffLines.map((line, index) => (
                 <DiffLine
                   key={`${line.variant}-${index}`}
                   variant={line.variant}
