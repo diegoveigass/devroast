@@ -399,6 +399,7 @@ test("markSubmissionFailed rejection does not mask provider error", async () => 
 
   assertCreateError(result);
   assert.equal(result.code, PROVIDER_UNAVAILABLE_CODE);
+  assert.equal(result.message, "Provider offline OPENAI_API_KEY=[REDACTED]");
   assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
 });
 
@@ -421,6 +422,7 @@ test("markSubmissionFailed rejection does not mask persistence error", async () 
 
   assertCreateError(result);
   assert.equal(result.code, PERSISTENCE_ERROR_CODE);
+  assert.equal(result.message, "simulated persistence failure");
   assert.match(result.submissionId ?? "", /^[0-9a-f-]{36}$/i);
 });
 
