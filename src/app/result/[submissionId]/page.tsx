@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { z } from "zod";
 
-import { getQueryClient, trpc } from "@/trpc/server";
+import { getBaseUrl } from "@/lib/env/get-base-url";
 
 import {
   createSubmissionResultViewModel,
   type SubmissionResultViewModel,
 } from "../submission-result-view-model";
 import { SubmissionResultView } from "./_components/submission-result-view";
+import {
+  getResultShareSource,
+  type ResultShareSource,
+} from "./get-result-share-source";
+import { buildResultMetadata } from "./result-metadata";
+import { createResultShareViewModel } from "./result-share-view-model";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const submissionIdSchema = z.uuid();
 
 type ResultPageProps = {
   params: Promise<{
@@ -19,12 +25,19 @@ type ResultPageProps = {
   }>;
 };
 
-export const metadata: Metadata = {
-  title: "Roast Result | DevRoast",
-  description: "Roast result view keyed by a submission UUID.",
+type GenerateResultPageMetadataInput = {
+  getBaseUrl: () => string;
+  loadShareSource: (submissionId: string) => Promise<ResultShareSource>;
+  notFound?: () => never;
+  submissionId: string;
 };
 
+function isValidSubmissionId(submissionId: string) {
+  return submissionIdSchema.safeParse(submissionId).success;
+}
+
 const getSubmissionResult = cache(async (submissionId: string) => {
+  const { getQueryClient, trpc } = await import("@/trpc/server");
   const queryClient = getQueryClient();
   const result = await queryClient.fetchQuery(
     trpc.roasts.getBySubmissionId.queryOptions({ submissionId }),
@@ -35,10 +48,48 @@ const getSubmissionResult = cache(async (submissionId: string) => {
   ) satisfies SubmissionResultViewModel;
 });
 
+export async function generateResultPageMetadata({
+  getBaseUrl: resolveBaseUrl,
+  loadShareSource,
+  notFound: handleNotFound,
+  submissionId,
+}: GenerateResultPageMetadataInput): Promise<Metadata> {
+  if (!isValidSubmissionId(submissionId)) {
+    handleNotFound?.();
+    return buildResultMetadata({
+      baseUrl: resolveBaseUrl(),
+      submissionId,
+      viewModel: { status: "unavailable" },
+    });
+  }
+
+  const source = await loadShareSource(submissionId);
+  const viewModel = createResultShareViewModel(source);
+
+  return buildResultMetadata({
+    baseUrl: resolveBaseUrl(),
+    submissionId,
+    viewModel,
+  });
+}
+
+export async function generateMetadata(
+  props: ResultPageProps,
+): Promise<Metadata> {
+  const { submissionId } = await props.params;
+
+  return generateResultPageMetadata({
+    getBaseUrl,
+    loadShareSource: getResultShareSource,
+    notFound,
+    submissionId,
+  });
+}
+
 export default async function ResultPage(props: ResultPageProps) {
   const { submissionId } = await props.params;
 
-  if (!UUID_REGEX.test(submissionId)) {
+  if (!isValidSubmissionId(submissionId)) {
     notFound();
   }
 
