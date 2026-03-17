@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { INVALID_PROVIDER_OUTPUT_CODE } from "./contracts";
+import {
+  INVALID_PROVIDER_OUTPUT_CODE,
+  PROVIDER_UNAVAILABLE_CODE,
+} from "./contracts";
 import { normalizeRoastOutput } from "./normalize-roast-output";
 import { buildRoastPrompt } from "./prompt";
-import { resolveOpenAIModel } from "./providers/openai-provider";
+import {
+  resolveOpenAIModel,
+  runOpenAIProvider,
+} from "./providers/openai-provider";
 
 test("normalizes a valid provider payload", () => {
   const result = normalizeRoastOutput({
@@ -110,4 +116,23 @@ test("resolves model from OPENAI_MODEL with fallback", () => {
 
   assert.equal(explicitModel, "gpt-4o");
   assert.equal(fallbackModel, "gpt-4o-mini");
+});
+
+test("throws PROVIDER_UNAVAILABLE when OPENAI_API_KEY is missing", async () => {
+  await assert.rejects(
+    () =>
+      runOpenAIProvider(
+        {
+          systemPrompt: "system",
+          userPrompt: "user",
+        },
+        { env: {} },
+      ),
+    (error: unknown) => {
+      assert.equal(typeof error, "object");
+      assert.notEqual(error, null);
+      assert.equal((error as { code: string }).code, PROVIDER_UNAVAILABLE_CODE);
+      return true;
+    },
+  );
 });

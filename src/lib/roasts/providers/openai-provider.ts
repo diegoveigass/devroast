@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 
-import { INVALID_PROVIDER_OUTPUT_CODE, RoastDomainError } from "../contracts";
+import {
+  INVALID_PROVIDER_OUTPUT_CODE,
+  PROVIDER_UNAVAILABLE_CODE,
+  RoastDomainError,
+} from "../contracts";
 
 export const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
 
@@ -24,7 +28,7 @@ function resolveOpenAIApiKey(env: OpenAIEnvironment = process.env) {
 
   if (!apiKey) {
     throw new RoastDomainError(
-      INVALID_PROVIDER_OUTPUT_CODE,
+      PROVIDER_UNAVAILABLE_CODE,
       "Missing OpenAI API key configuration.",
     );
   }
