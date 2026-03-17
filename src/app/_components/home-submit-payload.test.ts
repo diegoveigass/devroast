@@ -6,7 +6,6 @@ import { buildHomeSubmitPayload } from "./home-submit-payload";
 test("prefers the manual language over the detected language", () => {
   const result = buildHomeSubmitPayload({
     code: "const answer = 42;",
-    detectedLanguage: "javascript",
     roastModeEnabled: true,
     selectedLanguage: "typescript",
   });
@@ -21,16 +20,30 @@ test("prefers the manual language over the detected language", () => {
 
 test("falls back to the detected language and maps disabled roast mode to honest", () => {
   const result = buildHomeSubmitPayload({
-    code: "print('hi')",
-    detectedLanguage: "python",
+    code: "def greet(name: str):\n    print(f'hi {name}')",
     roastModeEnabled: false,
     selectedLanguage: null,
   });
 
   assert.deepEqual(result, {
-    code: "print('hi')",
+    code: "def greet(name: str):\n    print(f'hi {name}')",
     language: "python",
     roastMode: "honest",
+    source: "web",
+  });
+});
+
+test("derives the auto-detected language from the current code instead of trusting stale state", () => {
+  const result = buildHomeSubmitPayload({
+    code: "def greet(name: str):\n    print(f'hi {name}')",
+    roastModeEnabled: true,
+    selectedLanguage: null,
+  });
+
+  assert.deepEqual(result, {
+    code: "def greet(name: str):\n    print(f'hi {name}')",
+    language: "python",
+    roastMode: "full_roast",
     source: "web",
   });
 });

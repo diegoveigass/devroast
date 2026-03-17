@@ -5,20 +5,99 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import {
-  DEFAULT_LANGUAGE_ID,
-  type SupportedLanguageId,
-} from "@/lib/code-highlight/languages";
+import type { SupportedLanguageId } from "@/lib/code-highlight/languages";
 import { useTRPC } from "@/trpc/client";
 
 import { HomeHero } from "./home-hero";
 import { getHomeSubmitErrorMessage } from "./home-submit-error-message";
-import { buildHomeSubmitPayload } from "./home-submit-payload";
+import {
+  buildHomeSubmitPayload,
+  type HomeSubmitPayload,
+} from "./home-submit-payload";
 
 type HomePageClientProps = {
   characterLimit: number;
   children: ReactNode;
 };
+
+type SubmitHomePageClientSubmissionInput = {
+  code: string;
+  mutateAsync: (payload: HomeSubmitPayload) => Promise<
+    | {
+        publicId: string;
+        status: "completed";
+        submissionId: string;
+      }
+    | {
+        code: string;
+        message: string;
+        submissionId?: string;
+      }
+  >;
+  push: (href: string) => void;
+  roastModeEnabled: boolean;
+  selectedLanguage: SupportedLanguageId | null;
+  setSubmitErrorMessage: (message: string | null) => void;
+};
+
+type CreateHomePageClientChangeHandlersInput = {
+  clearSubmitErrorMessage: () => void;
+  setCode: (value: string) => void;
+  setRoastModeEnabled: (value: boolean) => void;
+  setSelectedLanguage: (value: SupportedLanguageId | null) => void;
+};
+
+export function createHomePageClientChangeHandlers({
+  clearSubmitErrorMessage,
+  setCode,
+  setRoastModeEnabled,
+  setSelectedLanguage,
+}: CreateHomePageClientChangeHandlersInput) {
+  return {
+    handleCodeChange(value: string) {
+      clearSubmitErrorMessage();
+      setCode(value);
+    },
+    handleRoastModeChange(value: boolean) {
+      clearSubmitErrorMessage();
+      setRoastModeEnabled(value);
+    },
+    handleSelectedLanguageChange(value: SupportedLanguageId | null) {
+      clearSubmitErrorMessage();
+      setSelectedLanguage(value);
+    },
+  };
+}
+
+export async function submitHomePageClientSubmission({
+  code,
+  mutateAsync,
+  push,
+  roastModeEnabled,
+  selectedLanguage,
+  setSubmitErrorMessage,
+}: SubmitHomePageClientSubmissionInput) {
+  setSubmitErrorMessage(null);
+
+  try {
+    const result = await mutateAsync(
+      buildHomeSubmitPayload({
+        code,
+        roastModeEnabled,
+        selectedLanguage,
+      }),
+    );
+
+    if ("status" in result) {
+      push(`/result/${result.submissionId}`);
+      return;
+    }
+
+    setSubmitErrorMessage(getHomeSubmitErrorMessage(result.code));
+  } catch {
+    setSubmitErrorMessage(getHomeSubmitErrorMessage());
+  }
+}
 
 export function HomePageClient({
   characterLimit,
@@ -27,8 +106,6 @@ export function HomePageClient({
   const router = useRouter();
   const trpc = useTRPC();
   const [code, setCode] = useState("");
-  const [detectedLanguage, setDetectedLanguage] =
-    useState<SupportedLanguageId>(DEFAULT_LANGUAGE_ID);
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLanguageId | null>(null);
   const [roastModeEnabled, setRoastModeEnabled] = useState(true);
@@ -44,32 +121,33 @@ export function HomePageClient({
     isCodeOverLimit ||
     createSubmissionMutation.isPending;
 
+  const clearSubmitErrorMessage = () => {
+    setSubmitErrorMessage(null);
+  };
+  const {
+    handleCodeChange,
+    handleRoastModeChange,
+    handleSelectedLanguageChange,
+  } = createHomePageClientChangeHandlers({
+    clearSubmitErrorMessage,
+    setCode,
+    setRoastModeEnabled,
+    setSelectedLanguage,
+  });
+
   async function handleSubmit() {
     if (isSubmitDisabled) {
       return;
     }
 
-    setSubmitErrorMessage(null);
-
-    try {
-      const result = await createSubmissionMutation.mutateAsync(
-        buildHomeSubmitPayload({
-          code,
-          detectedLanguage,
-          roastModeEnabled,
-          selectedLanguage,
-        }),
-      );
-
-      if ("status" in result) {
-        router.push(`/result/${result.submissionId}`);
-        return;
-      }
-
-      setSubmitErrorMessage(getHomeSubmitErrorMessage(result.code));
-    } catch {
-      setSubmitErrorMessage(getHomeSubmitErrorMessage());
-    }
+    await submitHomePageClientSubmission({
+      code,
+      mutateAsync: createSubmissionMutation.mutateAsync,
+      push: router.push,
+      roastModeEnabled,
+      selectedLanguage,
+      setSubmitErrorMessage,
+    });
   }
 
   return (
@@ -78,10 +156,9 @@ export function HomePageClient({
       code={code}
       isSubmitting={createSubmissionMutation.isPending}
       isSubmitDisabled={isSubmitDisabled}
-      onDetectedLanguageChange={setDetectedLanguage}
-      onCodeChange={setCode}
-      onRoastModeChange={setRoastModeEnabled}
-      onSelectedLanguageChange={setSelectedLanguage}
+      onCodeChange={handleCodeChange}
+      onRoastModeChange={handleRoastModeChange}
+      onSelectedLanguageChange={handleSelectedLanguageChange}
       onSubmit={() => {
         void handleSubmit();
       }}

@@ -13,7 +13,6 @@ type HomeHeroProps = {
   code: string;
   isSubmitting: boolean;
   isSubmitDisabled: boolean;
-  onDetectedLanguageChange: (value: SupportedLanguageId) => void;
   onCodeChange: (value: string) => void;
   onRoastModeChange: (value: boolean) => void;
   onSelectedLanguageChange: (value: SupportedLanguageId | null) => void;
@@ -29,7 +28,6 @@ export function HomeHero({
   code,
   isSubmitting,
   isSubmitDisabled,
-  onDetectedLanguageChange,
   onCodeChange,
   onRoastModeChange,
   onSelectedLanguageChange,
@@ -56,7 +54,6 @@ export function HomeHero({
       <HomeCodeEditor
         characterLimit={characterLimit}
         code={code}
-        onDetectedLanguageChange={onDetectedLanguageChange}
         onCodeChange={onCodeChange}
         onSelectedLanguageChange={onSelectedLanguageChange}
         selectedLanguage={selectedLanguage}
