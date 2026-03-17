@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { Button, Toggle } from "@/components/ui";
+import type { SupportedLanguageId } from "@/lib/code-highlight/languages";
 
 import { HomeCodeEditor } from "./home-code-editor";
 
@@ -10,16 +11,32 @@ type HomeHeroProps = {
   characterLimit: number;
   children: ReactNode;
   code: string;
+  isSubmitting: boolean;
   isSubmitDisabled: boolean;
+  onDetectedLanguageChange: (value: SupportedLanguageId) => void;
   onCodeChange: (value: string) => void;
+  onRoastModeChange: (value: boolean) => void;
+  onSelectedLanguageChange: (value: SupportedLanguageId | null) => void;
+  onSubmit: () => void;
+  roastModeEnabled: boolean;
+  selectedLanguage: SupportedLanguageId | null;
+  submitErrorMessage: string | null;
 };
 
 export function HomeHero({
   characterLimit,
   children,
   code,
+  isSubmitting,
   isSubmitDisabled,
+  onDetectedLanguageChange,
   onCodeChange,
+  onRoastModeChange,
+  onSelectedLanguageChange,
+  onSubmit,
+  roastModeEnabled,
+  selectedLanguage,
+  submitErrorMessage,
 }: HomeHeroProps) {
   return (
     <section className="flex flex-col items-center gap-8 text-center">
@@ -39,23 +56,42 @@ export function HomeHero({
       <HomeCodeEditor
         characterLimit={characterLimit}
         code={code}
+        onDetectedLanguageChange={onDetectedLanguageChange}
         onCodeChange={onCodeChange}
+        onSelectedLanguageChange={onSelectedLanguageChange}
+        selectedLanguage={selectedLanguage}
       />
 
       <div className="flex w-full flex-col gap-4">
         <div className="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
             <Toggle.Root>
-              <Toggle.Control defaultChecked />
+              <Toggle.Control
+                checked={roastModeEnabled}
+                onCheckedChange={onRoastModeChange}
+              />
               <Toggle.Label>roast mode</Toggle.Label>
             </Toggle.Root>
             <p className="text-xs leading-5 text-text-tertiary">
-              {"// maximum sarcasm enabled"}
+              {roastModeEnabled
+                ? "// maximum sarcasm enabled"
+                : "// toned down, still honest"}
             </p>
           </div>
 
-          <Button disabled={isSubmitDisabled}>{"$ roast_my_code"}</Button>
+          <Button disabled={isSubmitDisabled} onClick={onSubmit} type="button">
+            {isSubmitting ? "$ roasting..." : "$ roast_my_code"}
+          </Button>
         </div>
+
+        {submitErrorMessage ? (
+          <p
+            className="border border-accent-red bg-bg-critical-soft px-4 py-3 text-left font-mono text-xs leading-6 text-accent-red"
+            role="alert"
+          >
+            {`// ${submitErrorMessage}`}
+          </p>
+        ) : null}
 
         {children}
       </div>
